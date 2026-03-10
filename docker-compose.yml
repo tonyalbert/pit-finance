@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8347}:${PORT:-8347}"
+    env_file:
+      - .env
+
+  frontend:
+    build:
+      context: ./front-finance
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4821:4821"
+    environment:
+      API_INTERNAL_URL: http://backend:${PORT:-8347}
+    depends_on:
+      - backend
