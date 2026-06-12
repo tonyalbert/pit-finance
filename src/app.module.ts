@@ -7,6 +7,7 @@ import { IncomesModule } from './incomes/incomes.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { CreditorsModule } from './creditors/creditors.module';
 import { AiModule } from './ai/ai.module';
+import { FixedExpensesModule } from './fixed-expenses/fixed-expenses.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AiModule } from './ai/ai.module';
     ExpensesModule,
     CreditorsModule,
     AiModule,
+    FixedExpensesModule,
   ],
 })
 export class AppModule {}

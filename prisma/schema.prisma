@@ -24,10 +24,25 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tags       Tag[]
-  incomes    Income[]
-  expenses   Expense[]
-  creditors  Creditor[]
+  tags                Tag[]
+  incomes             Income[]
+  expenses            Expense[]
+  creditors           Creditor[]
+  passwordResetTokens PasswordResetToken[]
+  fixedExpenses       FixedExpense[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Tag {
@@ -38,9 +53,10 @@ model Tag {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  incomes  Income[]
-  expenses Expense[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incomes       Income[]
+  expenses      Expense[]
+  fixedExpenses FixedExpense[]
 
   @@unique([userId, name, type])
   @@index([userId, type])
@@ -55,8 +71,9 @@ model Creditor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses Expense[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses      Expense[]
+  fixedExpenses FixedExpense[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -95,9 +112,34 @@ model Expense {
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tag      Tag?     @relation(fields: [tagId], references: [id], onDelete: SetNull)
-  creditor Creditor? @relation(fields: [creditorId], references: [id], onDelete: SetNull)
+  creditor       Creditor?     @relation(fields: [creditorId], references: [id], onDelete: SetNull)
+  fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id], onDelete: SetNull)
+  fixedExpenseId String?
 
   @@index([userId, date])
   @@index([userId, installmentGroupId])
   @@index([userId, creditorId])
+  @@index([fixedExpenseId])
+}
+
+model FixedExpense {
+  id         String   @id @default(uuid())
+  name       String
+  amount     Decimal  @db.Decimal(12, 2)
+  dayOfMonth Int
+  tagId      String?
+  creditorId String?
+  userId     String
+  isActive   Boolean  @default(true)
+  startDate  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag      Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  creditor Creditor? @relation(fields: [creditorId], references: [id], onDelete: SetNull)
+  expenses Expense[]
+
+  @@index([userId])
+  @@index([userId, isActive])
 }

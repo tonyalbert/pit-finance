@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx prisma *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\tonya\\\\Documents\\\\pit-finance\\\\src\" -Recurse -Include \"*.controller.ts\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(head *)",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "Bash(npm run *)"
     ]
   }
 }
