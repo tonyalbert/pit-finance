@@ -58,7 +58,7 @@ export class AuthService {
     });
 
     await this.createDefaultTags(user.id);
-    return this.signToken(user.id, user.email);
+    return this.signToken(user.id, user.email, user.isAdmin);
   }
 
   async login(dto: LoginDto) {
@@ -74,7 +74,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais invalidas.');
     }
 
-    return this.signToken(user.id, user.email);
+    return this.signToken(user.id, user.email, user.isAdmin);
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
@@ -134,10 +134,10 @@ export class AuthService {
     return { message: 'Senha redefinida com sucesso.' };
   }
 
-  private async signToken(userId: string, email: string) {
+  private async signToken(userId: string, email: string, isAdmin: boolean) {
     const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '7d';
     const accessToken = await this.jwtService.signAsync(
-      { sub: userId, email },
+      { sub: userId, email, isAdmin },
       { expiresIn: expiresIn as SignOptions['expiresIn'] },
     );
     return { accessToken };
