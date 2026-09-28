@@ -1,7 +1,9 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDateString,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -11,9 +13,11 @@ import {
   Min,
 } from 'class-validator';
 
+// undefined = nao altera; null em endDate/tagId/creditorId = limpa.
 export class UpdateFixedExpenseDto {
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   name?: string;
 
   @IsOptional()
@@ -30,12 +34,20 @@ export class UpdateFixedExpenseDto {
   dayOfMonth?: number;
 
   @IsOptional()
-  @IsUUID()
-  tagId?: string;
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string | null;
 
   @IsOptional()
   @IsUUID()
-  creditorId?: string;
+  tagId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  creditorId?: string | null;
 
   @IsOptional()
   @IsBoolean()

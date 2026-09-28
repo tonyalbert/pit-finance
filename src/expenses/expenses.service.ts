@@ -4,12 +4,18 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { CreateInstallmentsDto } from './dto/create-installments.dto';
 import { randomUUID } from 'crypto';
+import { OccurrencesService } from '../fixed-expenses/occurrences.service';
+import { assertOwnedRefs } from '../common/assert-owned-refs';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly occurrences: OccurrencesService,
+  ) {}
 
-  create(userId: string, dto: CreateExpenseDto) {
+  async create(userId: string, dto: CreateExpenseDto) {
+    await assertOwnedRefs(this.prisma, userId, dto);
     return this.prisma.expense.create({
       data: {
         item: dto.item,
@@ -26,7 +32,9 @@ export class ExpensesService {
     });
   }
 
-  findAll(userId: string) {
+  async findAll(userId: string) {
+    // Self-healing: garante as ocorrencias faltantes das despesas fixas (nunca quebra a listagem).
+    await this.occurrences.ensureSafe(userId);
     return this.prisma.expense.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
@@ -41,12 +49,25 @@ export class ExpensesService {
       throw new NotFoundException('Despesa nao encontrada.');
     }
 
-    return this.prisma.expense.update({
-      where: { id: expense.id },
+    await assertOwnedRefs(this.prisma, userId, dto);
+
+    // Mutacao escopada por userId na propria query (whitelist explicita dos campos editaveis).
+    const { count } = await this.prisma.expense.updateMany({
+      where: { id: expense.id, userId },
       data: {
-        ...dto,
+        item: dto.item,
+        amount: dto.amount,
         date: dto.date ? new Date(dto.date) : undefined,
+        tagId: dto.tagId,
+        isPaid: dto.isPaid,
+        creditorId: dto.creditorId,
       },
+    });
+    if (count === 0) {
+      throw new NotFoundException('Despesa nao encontrada.');
+    }
+    return this.prisma.expense.findFirstOrThrow({
+      where: { id: expense.id, userId },
     });
   }
 
@@ -57,7 +78,21 @@ export class ExpensesService {
     if (!expense) {
       throw new NotFoundException('Despesa nao encontrada.');
     }
-    return this.prisma.expense.delete({ where: { id: expense.id } });
+    // Ocorrencia gerada de despesa fixa: registra lapide para nao ressuscitar na proxima listagem.
+    if (expense.fixedExpenseId && expense.fixedExpenseCompetence) {
+      await this.prisma.$transaction([
+        this.prisma.fixedExpense.updateMany({
+          where: { id: expense.fixedExpenseId, userId },
+          data: {
+            skippedCompetences: { push: expense.fixedExpenseCompetence },
+          },
+        }),
+        this.prisma.expense.deleteMany({ where: { id: expense.id, userId } }),
+      ]);
+      return expense;
+    }
+    await this.prisma.expense.deleteMany({ where: { id: expense.id, userId } });
+    return expense;
   }
 
   async updateGroup(
@@ -65,6 +100,7 @@ export class ExpensesService {
     groupId: string,
     dto: { tagId?: string | null; creditorId?: string | null },
   ) {
+    await assertOwnedRefs(this.prisma, userId, dto);
     const count = await this.prisma.expense.count({
       where: { installmentGroupId: groupId, userId },
     });
@@ -88,6 +124,7 @@ export class ExpensesService {
   }
 
   async createInstallments(userId: string, dto: CreateInstallmentsDto) {
+    await assertOwnedRefs(this.prisma, userId, dto);
     const groupId = randomUUID();
     const baseDate = new Date(dto.startDate);
     const data = Array.from({ length: dto.totalInstallments }, (_v, i) => {

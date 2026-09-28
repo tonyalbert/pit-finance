@@ -118,11 +118,13 @@ model Expense {
   creditor       Creditor?     @relation(fields: [creditorId], references: [id], onDelete: SetNull)
   fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id], onDelete: SetNull)
   fixedExpenseId String?
+  fixedExpenseCompetence String?
 
   @@index([userId, date])
   @@index([userId, installmentGroupId])
   @@index([userId, creditorId])
   @@index([fixedExpenseId])
+  @@unique([fixedExpenseId, fixedExpenseCompetence])
 }
 
 model FixedExpense {
@@ -135,6 +137,8 @@ model FixedExpense {
   userId     String
   isActive   Boolean  @default(true)
   startDate  DateTime
+  endDate    DateTime?
+  skippedCompetences String[] @default([])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

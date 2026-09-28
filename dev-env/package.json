@@ -1,0 +1,6 @@
+{
+  "name": "pit-finance-dev-env",
+  "private": true,
+  "description": "Postgres local descartavel para dev/teste (nunca producao)",
+  "dependencies": { "embedded-postgres": "17.10.0-beta.17" }
+}

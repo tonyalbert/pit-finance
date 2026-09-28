@@ -31,11 +31,16 @@ export class CreateFixedExpenseDto {
   @IsDateString()
   startDate: string;
 
+  // null/ausente = "sem data fim"
   @IsOptional()
-  @IsUUID()
-  tagId?: string;
+  @IsDateString()
+  endDate?: string | null;
 
   @IsOptional()
   @IsUUID()
-  creditorId?: string;
+  tagId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  creditorId?: string | null;
 }

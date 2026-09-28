@@ -18,7 +18,17 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "dev:db": "node dev-env/pg.mjs start",
+    "dev:reset": "node dev-env/pg.mjs reset",
+    "dev:guard": "node dev-env/guard.cjs",
+    "dev:migrate": "node dev-env/run.cjs npx prisma migrate deploy",
+    "dev:seed": "node dev-env/run.cjs node dev-env/seed-dev.cjs",
+    "dev:api": "npm run build && node dev-env/run.cjs node dist/main",
+    "dev:test:e2e": "node dev-env/run.cjs npx jest --config ./test/jest-e2e.json",
+    "pretest:e2e": "node dev-env/guard.cjs",
+    "preseed": "node dev-env/guard.cjs",
+    "dev:prisma": "node dev-env/run.cjs npx prisma"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

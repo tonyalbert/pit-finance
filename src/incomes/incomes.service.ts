@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
+import { assertOwnedRefs } from '../common/assert-owned-refs';
 
 @Injectable()
 export class IncomesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(userId: string, dto: CreateIncomeDto) {
+  async create(userId: string, dto: CreateIncomeDto) {
+    await assertOwnedRefs(this.prisma, userId, { tagId: dto.tagId });
     return this.prisma.income.create({
       data: {
         source: dto.source,
@@ -34,12 +36,23 @@ export class IncomesService {
       throw new NotFoundException('Receita nao encontrada.');
     }
 
-    return this.prisma.income.update({
-      where: { id: income.id },
+    await assertOwnedRefs(this.prisma, userId, { tagId: dto.tagId });
+
+    // Mutacao escopada por userId na propria query (whitelist explicita dos campos editaveis).
+    const { count } = await this.prisma.income.updateMany({
+      where: { id: income.id, userId },
       data: {
-        ...dto,
+        source: dto.source,
+        amount: dto.amount,
         date: dto.date ? new Date(dto.date) : undefined,
+        tagId: dto.tagId,
       },
+    });
+    if (count === 0) {
+      throw new NotFoundException('Receita nao encontrada.');
+    }
+    return this.prisma.income.findFirstOrThrow({
+      where: { id: income.id, userId },
     });
   }
 
@@ -50,6 +63,7 @@ export class IncomesService {
     if (!income) {
       throw new NotFoundException('Receita nao encontrada.');
     }
-    return this.prisma.income.delete({ where: { id: income.id } });
+    await this.prisma.income.deleteMany({ where: { id: income.id, userId } });
+    return income;
   }
 }

@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCreditorDto } from './dto/create-creditor.dto';
 import { UpdateCreditorDto } from './dto/update-creditor.dto';
+import {
+  addMonths,
+  currentMonthKey,
+  monthStartUtc,
+} from '../fixed-expenses/occurrence-utils';
 
 @Injectable()
 export class CreditorsService {
@@ -87,7 +92,17 @@ export class CreditorsService {
         expenses: {
           where: {
             userId,
-            ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
+            ...(Object.keys(dateFilter).length
+              ? { date: dateFilter }
+              : {
+                  // Sem mes: nao inflar com ocorrencias geradas de despesas fixas alem do mes corrente.
+                  NOT: {
+                    fixedExpenseCompetence: { not: null },
+                    date: {
+                      gte: monthStartUtc(addMonths(currentMonthKey(), 1)),
+                    },
+                  },
+                }),
           },
           select: {
             amount: true,
