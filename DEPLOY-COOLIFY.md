@@ -55,7 +55,7 @@ Se precisar refazer, limpe o destino (drop/recreate do `db_pitfinance`) e repita
    - `FRONTEND_URL`: o domínio do front, sem barra no final (CORS).
    - `JWT_SECRET`: **mantenha o mesmo** de hoje para que ninguém seja deslogado (ou troque de propósito para forçar novo login).
    - `ABACATEPAY_*`: não existem no `.env` atual. Com `BILLING_ENFORCE=true` e sem chave, o checkout fica indisponível.
-4. O Dockerfile tem um `HEALTHCHECK` em `GET /`. A Coolify só considera o deploy pronto quando ele passa.
+4. O Dockerfile tem um `HEALTHCHECK` em `GET /health` (testa também o banco). A Coolify só considera o deploy pronto quando ele passa.
 5. No painel da AbacatePay, atualize a URL do webhook para o domínio novo.
 
 ## 4. Front na Coolify (`front-finance`)

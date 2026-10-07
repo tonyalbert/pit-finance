@@ -25,7 +25,7 @@ EXPOSE 8347
 
 # Coolify usa este healthcheck para decidir se o deploy subiu. start-period cobre o "migrate deploy" no boot.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT}/" >/dev/null || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT}/health" >/dev/null || exit 1
 
 # Banco vazio: o migrate deploy cria toda a estrutura no primeiro boot (e aplica as novas nos seguintes).
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
