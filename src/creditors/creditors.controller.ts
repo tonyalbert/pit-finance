@@ -3,10 +3,11 @@ import { CreditorsService } from './creditors.service';
 import { CreateCreditorDto } from './dto/create-creditor.dto';
 import { UpdateCreditorDto } from './dto/update-creditor.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { RequestUser } from '../auth/auth.types';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('creditors')
 export class CreditorsController {
   constructor(private readonly creditorsService: CreditorsService) {}

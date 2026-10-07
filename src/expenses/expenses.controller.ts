@@ -4,10 +4,11 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { CreateInstallmentsDto } from './dto/create-installments.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { RequestUser } from '../auth/auth.types';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('expenses')
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}

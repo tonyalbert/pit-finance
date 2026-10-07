@@ -5,6 +5,26 @@ const { spawn } = require('child_process');
 const { assertLocal } = require('./guard.cjs');
 const cfg = require('./config.cjs');
 
+const fs = require('fs');
+const path = require('path');
+
+// Segredos SO de dev (ex.: chave abc_dev_ da AbacatePay) em dev-env/.env.local (ignorado pelo git).
+function readLocalSecrets() {
+  const file = path.join(__dirname, '.env.local');
+  if (!fs.existsSync(file)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
+const local = readLocalSecrets();
+if (local.ABACATEPAY_API_KEY && !local.ABACATEPAY_API_KEY.startsWith('abc_dev_')) {
+  console.error('[dev-env] ABACATEPAY_API_KEY de dev deve comecar com abc_dev_ (nunca use a de producao aqui).');
+  process.exit(1);
+}
+
 const front = process.env.DEV_FRONT_URL || 'http://localhost:3001';
 const env = {
   ...process.env,
@@ -21,6 +41,12 @@ const env = {
   MAIL_FROM_NAME: 'PIT Finance DEV',
   // Geracao automatica de despesas fixas: LIGADA so no ambiente local (padrao do back e desligado).
   FIXED_EXPENSES_AUTOGEN: process.env.FIXED_EXPENSES_AUTOGEN ?? 'true',
+  // Assinaturas AbacatePay (Dev mode): bloqueio LIGADO so no local; sem chave => checkout indisponivel.
+  BILLING_ENFORCE: process.env.BILLING_ENFORCE ?? 'true',
+  ABACATEPAY_API_KEY: local.ABACATEPAY_API_KEY ?? '',
+  ABACATEPAY_WEBHOOK_SECRET: local.ABACATEPAY_WEBHOOK_SECRET ?? 'dev-webhook-secret',
+  ABACATEPAY_PRODUCT_MONTHLY: local.ABACATEPAY_PRODUCT_MONTHLY ?? 'prod_XkzdXcbLdYD0f5tcbzBkY43B',
+  ABACATEPAY_PRODUCT_ANNUAL: local.ABACATEPAY_PRODUCT_ANNUAL ?? 'prod_aukjU1GPYZY02crNctL6zUkk',
 };
 
 try {

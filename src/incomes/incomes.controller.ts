@@ -3,10 +3,11 @@ import { IncomesService } from './incomes.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { RequestUser } from '../auth/auth.types';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('incomes')
 export class IncomesController {
   constructor(private readonly incomesService: IncomesService) {}

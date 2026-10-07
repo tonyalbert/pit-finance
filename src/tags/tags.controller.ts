@@ -3,11 +3,12 @@ import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { RequestUser } from '../auth/auth.types';
 import { TagType } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('tags')
 export class TagsController {
   constructor(private readonly tagsService: TagsService) {}

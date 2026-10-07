@@ -2,8 +2,9 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AiService } from './ai.service';
 import type { AnalysisPayload } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}

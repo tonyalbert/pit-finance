@@ -84,7 +84,10 @@ export class AuthService {
 
     // Always return success to avoid user enumeration
     if (!user) {
-      return { message: 'Se este e-mail estiver cadastrado, voce recebera as instrucoes em breve.' };
+      return {
+        message:
+          'Se este e-mail estiver cadastrado, voce recebera as instrucoes em breve.',
+      };
     }
 
     // Invalidate existing unused tokens for this user
@@ -102,7 +105,10 @@ export class AuthService {
 
     await this.mailService.sendPasswordResetEmail(user.email, token);
 
-    return { message: 'Se este e-mail estiver cadastrado, voce recebera as instrucoes em breve.' };
+    return {
+      message:
+        'Se este e-mail estiver cadastrado, voce recebera as instrucoes em breve.',
+    };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
@@ -115,7 +121,9 @@ export class AuthService {
     }
 
     if (record.expiresAt < new Date()) {
-      throw new BadRequestException('Token expirado. Solicite uma nova recuperacao de senha.');
+      throw new BadRequestException(
+        'Token expirado. Solicite uma nova recuperacao de senha.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);

@@ -3,7 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: o webhook da AbacatePay valida o HMAC sobre o corpo original.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   
   // Configuração de CORS
   app.enableCors({

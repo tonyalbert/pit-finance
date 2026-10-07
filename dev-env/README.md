@@ -41,3 +41,18 @@ As despesas fixas materializam sozinhas as ocorrencias (mes corrente ate +12 mes
 
 Exemplo (desligar no dev): `FIXED_EXPENSES_AUTOGEN=false npm run dev:api`.
 `POST /fixed-expenses/generate/:year/:month` esta DEPRECADO (idempotente, sem uso na UI).
+
+## Assinaturas AbacatePay (cobranca)
+Bloqueio do app inteiro sem teste/assinatura (Suporte, Configuracoes e Assinatura continuam abertos). Admin nunca e bloqueado.
+| Variavel | Padrao | Efeito |
+|---|---|---|
+| `BILLING_ENFORCE` | **desligado** (so `true` liga) | Liga o bloqueio (API responde 402). `dev-env/run.cjs` define `true`. |
+| `ABACATEPAY_API_KEY` | vazio | Chave da API v2. No dev vem de `dev-env/.env.local` e PRECISA comecar com `abc_dev_`. |
+| `ABACATEPAY_PRODUCT_MONTHLY` / `ABACATEPAY_PRODUCT_ANNUAL` | vazio | Ids `prod_...` dos planos (o dev usa os produtos de teste). |
+| `ABACATEPAY_WEBHOOK_SECRET` | vazio | Secret do webhook (`?webhookSecret=`). Sem ele todo webhook e recusado. |
+| `ABACATEPAY_WEBHOOK_PUBLIC_KEY` | chave publica da doc | So se a AbacatePay rotacionar a chave do HMAC. |
+
+Webhook: `POST /webhooks/abacatepay?webhookSecret=...` (HTTPS publico), eventos `subscription.completed`,
+`subscription.renewed`, `subscription.cancelled`, `subscription.trial_started`. O acesso pago so muda pelo webhook.
+Teste gratis: OPCIONAL, 7 dias, uma vez por conta (`POST /billing/trial`); o cadastro nao da teste automatico.
+Usuarios anteriores a `20261004120000_trial_opt_in` ja receberam o teste no lancamento e nao podem iniciar outro.

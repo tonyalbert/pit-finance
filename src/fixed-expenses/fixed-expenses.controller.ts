@@ -13,10 +13,11 @@ import { FixedExpensesService } from './fixed-expenses.service';
 import { CreateFixedExpenseDto } from './dto/create-fixed-expense.dto';
 import { UpdateFixedExpenseDto } from './dto/update-fixed-expense.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ActiveAccessGuard } from '../billing/access.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { RequestUser } from '../auth/auth.types';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ActiveAccessGuard)
 @Controller('fixed-expenses')
 export class FixedExpensesController {
   constructor(private readonly fixedExpensesService: FixedExpensesService) {}
