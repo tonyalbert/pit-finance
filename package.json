@@ -28,7 +28,10 @@
     "dev:test:e2e": "node dev-env/run.cjs npx jest --config ./test/jest-e2e.json",
     "pretest:e2e": "node dev-env/guard.cjs",
     "preseed": "node dev-env/guard.cjs",
-    "dev:prisma": "node dev-env/run.cjs npx prisma"
+    "dev:prisma": "node dev-env/run.cjs npx prisma",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:migrate-data": "node scripts/db/migrate-data.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
