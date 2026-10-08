@@ -189,6 +189,116 @@ describe('Metas de economia (e2e, banco local)', () => {
     ).toBe(0);
   });
 
+  it('emprestimo: parcelas viram despesas; pagas voltam para a meta com juros', async () => {
+    const g = await createGoal(0, {
+      name: 'Reserva',
+      targetAmount: 6000,
+      initialAmount: 3000,
+      isEmergencyFund: true,
+    }).expect(201);
+    await http()
+      .post(`/savings-goals/${g.body.id}/loans`)
+      .set(auth(0))
+      .send({
+        amount: 3000.01,
+        monthlyRate: 1,
+        installments: 6,
+        firstDueDate: `${at(1)}-10`,
+      })
+      .expect(400);
+
+    const r = await http()
+      .post(`/savings-goals/${g.body.id}/loans`)
+      .set(auth(0))
+      .send({
+        amount: 1000,
+        monthlyRate: 1,
+        installments: 6,
+        firstDueDate: `${at(1)}-10`,
+      })
+      .expect(201);
+    expect(r.body.progress.saved).toBe(2000);
+    expect(r.body.progress.pendingRepayment).toBeCloseTo(1035.3, 2);
+    const loan = r.body.loans[0];
+    expect(Number(loan.installmentAmount)).toBe(172.55);
+    expect(loan).toMatchObject({ paidCount: 0, remainingCount: 6 });
+
+    const expenses = await prisma.expense.findMany({
+      where: { installmentGroupId: loan.installmentGroupId },
+      orderBy: { installmentNumber: 'asc' },
+    });
+    expect(expenses).toHaveLength(6);
+    expect(expenses[0].item).toBe('1/6 - Empréstimo da reserva');
+
+    // Pagar a 1a parcela (como em Despesas) devolve o valor para a meta.
+    await http()
+      .put(`/expenses/${expenses[0].id}`)
+      .set(auth(0))
+      .send({ isPaid: true })
+      .expect(200);
+    const after = await http().get('/savings-goals').set(auth(0)).expect(200);
+    const mine = after.body.find((x: { id: string }) => x.id === g.body.id);
+    expect(mine.progress.saved).toBeCloseTo(2172.55, 2);
+    expect(mine.loans[0]).toMatchObject({ paidCount: 1, remainingCount: 5 });
+    expect(mine.loans[0].nextInstallment.number).toBe(2);
+
+    // Com parcela paga nao cancela; outro usuario nao enxerga.
+    await http()
+      .delete(`/savings-goals/${g.body.id}/loans/${loan.id}`)
+      .set(auth(0))
+      .expect(400);
+    await http()
+      .delete(`/savings-goals/${g.body.id}/loans/${loan.id}`)
+      .set(auth(1))
+      .expect(404);
+  });
+
+  it('cancelar emprestimo sem parcela paga remove as despesas e devolve o valor', async () => {
+    const g = await createGoal(0, { initialAmount: 500 }).expect(201);
+    const r = await http()
+      .post(`/savings-goals/${g.body.id}/loans`)
+      .set(auth(0))
+      .send({
+        amount: 300,
+        monthlyRate: 0,
+        installments: 3,
+        firstDueDate: `${at(0)}-28`,
+      })
+      .expect(201);
+    const loan = r.body.loans[0];
+    expect(Number(loan.installmentAmount)).toBe(100);
+    const del = await http()
+      .delete(`/savings-goals/${g.body.id}/loans/${loan.id}`)
+      .set(auth(0))
+      .expect(200);
+    expect(del.body.progress.saved).toBe(500);
+    expect(
+      await prisma.expense.count({
+        where: { installmentGroupId: loan.installmentGroupId },
+      }),
+    ).toBe(0);
+  });
+
+  it('emprestimo: validacao de taxa, parcelas e vencimento', async () => {
+    const g = await createGoal(0, { initialAmount: 500 }).expect(201);
+    const send = (body: object) =>
+      http()
+        .post(`/savings-goals/${g.body.id}/loans`)
+        .set(auth(0))
+        .send({
+          amount: 100,
+          monthlyRate: 1,
+          installments: 3,
+          firstDueDate: `${at(1)}-10`,
+          ...body,
+        });
+    await send({ monthlyRate: 21 }).expect(400);
+    await send({ monthlyRate: -1 }).expect(400);
+    await send({ installments: 0 }).expect(400);
+    await send({ installments: 49 }).expect(400);
+    await send({ firstDueDate: `${at(-1)}-10` }).expect(400);
+  });
+
   it('validacao: valor <= 0, tipo invalido e campos extras => 400', async () => {
     await createGoal(0, { targetAmount: 0 }).expect(400);
     const g = await createGoal(0).expect(201);

@@ -3,11 +3,13 @@ import {
   IsBoolean,
   IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Max,
   Min,
 } from 'class-validator';
 
@@ -72,4 +74,28 @@ export class CreateSavingsMovementDto {
   // YYYY-MM-DD (data em que guardou/retirou).
   @IsDateString()
   date: string;
+}
+
+export class CreateSavingsLoanDto {
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  amount: number;
+
+  // Juros ao mes em % (definidos pelo usuario; 0 = sem juros).
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(20)
+  monthlyRate: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(48)
+  installments: number;
+
+  // YYYY-MM-DD do vencimento da primeira parcela.
+  @IsDateString()
+  firstDueDate: string;
 }

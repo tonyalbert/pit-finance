@@ -5,6 +5,7 @@ import {
   monthKeyOf,
   monthsRange,
 } from '../fixed-expenses/occurrence-utils';
+import { LoanTotals, NO_LOANS } from './loan-math';
 
 export type GoalStatus = 'completed' | 'on_track' | 'behind' | 'overdue';
 
@@ -22,8 +23,12 @@ export type MovementInput = {
 };
 
 export type GoalProgress = {
+  /** Dinheiro na meta agora (inclui o que voltou de emprestimos, sem o que esta emprestado). */
   saved: number;
+  /** Falta para o alvo contando as parcelas de emprestimo a receber. */
   remaining: number;
+  /** Parcelas de emprestimo ainda nao pagas (a caminho da meta). */
+  pendingRepayment: number;
   percent: number;
   /** Meses do mes corrente ate o prazo (inclusive); 0 = prazo vencido. */
   monthsLeft: number;
@@ -48,24 +53,36 @@ export function goalProgress(
   goal: GoalInput,
   movements: MovementInput[],
   now: string = currentMonthKey(),
+  loans: LoanTotals = NO_LOANS,
 ): GoalProgress {
   const net = (m: MovementInput) =>
     m.type === 'DEPOSIT' ? cents(m.amount) : -cents(m.amount);
 
   const target = cents(goal.targetAmount);
   const initial = cents(goal.initialAmount);
-  const saved = initial + movements.reduce((s, m) => s + net(m), 0);
+  // Emprestimo: o principal saiu da meta; parcelas pagas voltaram; as pendentes estao a caminho
+  // e entram no plano (emprestar para si mesmo nao dispara a parcela sugerida).
+  const saved =
+    initial +
+    movements.reduce((s, m) => s + net(m), 0) -
+    cents(loans.lent) +
+    cents(loans.repaid);
+  const pending = cents(loans.pending);
+  const expected = saved + pending;
   const savedThisMonth = movements
     .filter((m) => monthKeyOf(m.date) === now)
     .reduce((s, m) => s + net(m), 0);
-  const remaining = Math.max(0, target - saved);
+  const remaining = Math.max(0, target - expected);
 
   const targetKey = monthKeyOf(goal.targetDate);
   const monthsLeft = now <= targetKey ? monthsRange(now, targetKey).length : 0;
 
   // Parcela do mes calculada sobre o que faltava no INICIO do mes: guardar a sugestao
   // nao muda a sugestao do proprio mes; o excesso/falta redistribui a partir do proximo.
-  const remainingAtMonthStart = Math.max(0, target - (saved - savedThisMonth));
+  const remainingAtMonthStart = Math.max(
+    0,
+    target - (expected - savedThisMonth),
+  );
   const monthlySuggested =
     remaining === 0
       ? 0
@@ -83,7 +100,8 @@ export function goalProgress(
   const plannedMonthly = Math.ceil(Math.max(0, target - initial) / totalMonths);
 
   let status: GoalStatus;
-  if (remaining === 0) status = 'completed';
+  if (saved >= target) status = 'completed';
+  else if (remaining === 0) status = 'on_track';
   else if (monthsLeft === 0) status = 'overdue';
   else if (monthlySuggested > plannedMonthly * BEHIND_TOLERANCE)
     status = 'behind';
@@ -92,6 +110,7 @@ export function goalProgress(
   return {
     saved: reais(saved),
     remaining: reais(remaining),
+    pendingRepayment: reais(pending),
     percent:
       target > 0
         ? Math.min(100, Math.max(0, Math.round((saved / target) * 1000) / 10))

@@ -11,6 +11,7 @@ import {
 import { SavingsGoalsService } from './savings-goals.service';
 import {
   CreateSavingsGoalDto,
+  CreateSavingsLoanDto,
   CreateSavingsMovementDto,
   UpdateSavingsGoalDto,
 } from './dto/savings-goal.dto';
@@ -64,5 +65,23 @@ export class SavingsGoalsController {
     @Param('movementId') movementId: string,
   ) {
     return this.savingsGoalsService.removeMovement(user.userId, id, movementId);
+  }
+
+  @Post(':id/loans')
+  createLoan(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: CreateSavingsLoanDto,
+  ) {
+    return this.savingsGoalsService.createLoan(user.userId, id, dto);
+  }
+
+  @Delete(':id/loans/:loanId')
+  removeLoan(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Param('loanId') loanId: string,
+  ) {
+    return this.savingsGoalsService.removeLoan(user.userId, id, loanId);
   }
 }
