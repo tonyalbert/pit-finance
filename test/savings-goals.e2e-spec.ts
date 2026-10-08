@@ -299,6 +299,28 @@ describe('Metas de economia (e2e, banco local)', () => {
     await send({ firstDueDate: `${at(-1)}-10` }).expect(400);
   });
 
+  it('comecar no mes que vem: nao pede aporte agora; inicio invalido => 400', async () => {
+    const r = await createGoal(0, {
+      initialAmount: 300,
+      startMonth: at(1),
+    }).expect(201);
+    expect(r.body.startMonth).toBe(at(1));
+    expect(r.body.progress).toMatchObject({
+      leftThisMonth: 0,
+      startsAt: at(1),
+      status: 'on_track',
+    });
+    await createGoal(0, { startMonth: at(-1) }).expect(400);
+    await createGoal(0, { startMonth: at(12) }).expect(400);
+    await createGoal(0, { startMonth: '2026-13' }).expect(400);
+    const back = await http()
+      .put(`/savings-goals/${r.body.id}`)
+      .set(auth(0))
+      .send({ startMonth: at(0) })
+      .expect(200);
+    expect(back.body.progress.startsAt).toBeNull();
+  });
+
   it('validacao: valor <= 0, tipo invalido e campos extras => 400', async () => {
     await createGoal(0, { targetAmount: 0 }).expect(400);
     const g = await createGoal(0).expect(201);

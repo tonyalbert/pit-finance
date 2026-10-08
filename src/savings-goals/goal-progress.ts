@@ -14,6 +14,8 @@ export type GoalInput = {
   targetDate: Date;
   initialAmount: unknown;
   createdAt: Date;
+  /** Competencia ("YYYY-MM") do primeiro aporte do plano; null = mes de criacao. */
+  startMonth?: string | null;
 };
 
 export type MovementInput = {
@@ -32,13 +34,15 @@ export type GoalProgress = {
   percent: number;
   /** Meses do mes corrente ate o prazo (inclusive); 0 = prazo vencido. */
   monthsLeft: number;
+  /** Primeiro mes de aporte ("YYYY-MM") quando ainda nao chegou; null = plano ja em andamento. */
+  startsAt: string | null;
   /** Quanto guardar por mes daqui ate o prazo (fixo dentro do mes corrente). */
   monthlySuggested: number;
   /** Liquido guardado no mes corrente (aportes - retiradas). */
   savedThisMonth: number;
   /** Quanto ainda falta guardar no mes corrente para seguir o ritmo. */
   leftThisMonth: number;
-  /** Parcela mensal do plano original (da criacao ate o prazo). */
+  /** Parcela mensal do plano original (do primeiro mes de aporte ate o prazo). */
   plannedMonthly: number;
   status: GoalStatus;
 };
@@ -77,8 +81,21 @@ export function goalProgress(
   const targetKey = monthKeyOf(goal.targetDate);
   const monthsLeft = now <= targetKey ? monthsRange(now, targetKey).length : 0;
 
+  // Inicio do plano: antes dele nao se pede aporte (quem ja tem dinheiro guardado pode
+  // comecar no mes que vem) e a meta nunca fica "atrasada" por isso.
+  const createdKey = currentMonthKey(goal.createdAt);
+  const startKey =
+    goal.startMonth && goal.startMonth > createdKey
+      ? goal.startMonth
+      : createdKey;
+  const notStarted = now < startKey && startKey <= targetKey;
+  const planMonths = notStarted
+    ? monthsRange(startKey, targetKey).length
+    : monthsLeft;
+
   // Parcela do mes calculada sobre o que faltava no INICIO do mes: guardar a sugestao
   // nao muda a sugestao do proprio mes; o excesso/falta redistribui a partir do proximo.
+  // Antes do inicio, vale o que falta agora (o que guardar antes ja reduz as parcelas).
   const remainingAtMonthStart = Math.max(
     0,
     target - (expected - savedThisMonth),
@@ -86,22 +103,22 @@ export function goalProgress(
   const monthlySuggested =
     remaining === 0
       ? 0
-      : monthsLeft > 0
-        ? Math.ceil(remainingAtMonthStart / monthsLeft)
+      : planMonths > 0
+        ? Math.ceil(
+            (notStarted ? remaining : remainingAtMonthStart) / planMonths,
+          )
         : remaining;
-  const leftThisMonth = Math.min(
-    remaining,
-    Math.max(0, monthlySuggested - savedThisMonth),
-  );
+  const leftThisMonth = notStarted
+    ? 0
+    : Math.min(remaining, Math.max(0, monthlySuggested - savedThisMonth));
 
-  const createdKey = currentMonthKey(goal.createdAt);
   const totalMonths =
-    createdKey <= targetKey ? monthsRange(createdKey, targetKey).length : 1;
+    startKey <= targetKey ? monthsRange(startKey, targetKey).length : 1;
   const plannedMonthly = Math.ceil(Math.max(0, target - initial) / totalMonths);
 
   let status: GoalStatus;
   if (saved >= target) status = 'completed';
-  else if (remaining === 0) status = 'on_track';
+  else if (remaining === 0 || notStarted) status = 'on_track';
   else if (monthsLeft === 0) status = 'overdue';
   else if (monthlySuggested > plannedMonthly * BEHIND_TOLERANCE)
     status = 'behind';
@@ -116,6 +133,7 @@ export function goalProgress(
         ? Math.min(100, Math.max(0, Math.round((saved / target) * 1000) / 10))
         : 100,
     monthsLeft,
+    startsAt: notStarted ? startKey : null,
     monthlySuggested: reais(monthlySuggested),
     savedThisMonth: reais(savedThisMonth),
     leftThisMonth: reais(leftThisMonth),

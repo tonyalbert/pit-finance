@@ -100,3 +100,45 @@ describe('goalProgress', () => {
     expect(p.monthlySuggested).toBe(1200);
   });
 });
+
+describe('goalProgress: comecar a guardar no mes que vem', () => {
+  // Caso real: criou a meta ja com dinheiro guardado e so vai aportar a partir do mes seguinte.
+  const g = goal({
+    targetAmount: 10000,
+    initialAmount: 3000,
+    targetDate: d('2027-09-30'),
+    createdAt: d('2026-10-05'),
+    startMonth: '2026-11',
+  });
+
+  it('no mes de criacao nao pede aporte e nao fica atrasada', () => {
+    const p = goalProgress(g, [], '2026-10');
+    expect(p.leftThisMonth).toBe(0);
+    expect(p.startsAt).toBe('2026-11');
+    expect(p.status).toBe('on_track');
+    // 7000 em 11 aportes (nov/2026 a set/2027)
+    expect(p.monthlySuggested).toBe(636.37);
+    expect(p.plannedMonthly).toBe(636.37);
+  });
+
+  it('no mes de inicio pede a parcela normal, sem acusar atraso', () => {
+    const p = goalProgress(g, [], '2026-11');
+    expect(p.startsAt).toBeNull();
+    expect(p.leftThisMonth).toBe(636.37);
+    expect(p.status).toBe('on_track');
+  });
+
+  it('se guardar algo antes do inicio, as parcelas ja diminuem', () => {
+    const p = goalProgress(g, [dep(700, '2026-10-20')], '2026-10');
+    expect(p.leftThisMonth).toBe(0);
+    expect(p.monthlySuggested).toBe(572.73); // 6300 / 11
+  });
+
+  it('sem startMonth (ou no passado) continua comecando no mes de criacao', () => {
+    const p = goalProgress({ ...g, startMonth: null }, [], '2026-10');
+    expect(p.startsAt).toBeNull();
+    expect(p.leftThisMonth).toBeGreaterThan(0);
+    const past = goalProgress({ ...g, startMonth: '2026-08' }, [], '2026-10');
+    expect(past.startsAt).toBeNull();
+  });
+});

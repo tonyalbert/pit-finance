@@ -220,6 +220,8 @@ model SavingsGoal {
   // Ja guardado antes de criar a meta (nao conta como "Guardado" de nenhum mes).
   initialAmount   Decimal  @default(0) @db.Decimal(12, 2)
   isEmergencyFund Boolean  @default(false)
+  // Primeiro mes de aporte ("YYYY-MM"); null = mes de criacao. Antes dele a meta nao pede aporte.
+  startMonth      String?
   userId          String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

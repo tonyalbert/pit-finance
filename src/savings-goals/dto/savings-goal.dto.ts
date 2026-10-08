@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
   Max,
   Min,
 } from 'class-validator';
@@ -32,6 +33,13 @@ export class CreateSavingsGoalDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   initialAmount?: number;
+
+  // Primeiro mes de aporte ("YYYY-MM"), a partir do mes atual. Ausente = mes atual.
+  @IsOptional()
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
+    message: 'startMonth deve estar no formato YYYY-MM.',
+  })
+  startMonth?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -60,6 +68,12 @@ export class UpdateSavingsGoalDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   initialAmount?: number;
+
+  @IsOptional()
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
+    message: 'startMonth deve estar no formato YYYY-MM.',
+  })
+  startMonth?: string;
 }
 
 export class CreateSavingsMovementDto {

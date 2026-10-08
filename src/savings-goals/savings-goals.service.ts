@@ -56,6 +56,8 @@ export class SavingsGoalsService {
   async create(userId: string, dto: CreateSavingsGoalDto) {
     const targetDate = toDateOnly(dto.targetDate);
     this.assertDeadline(targetDate);
+    if (dto.startMonth !== undefined)
+      this.assertStart(dto.startMonth, targetDate);
     const goal = await this.prisma.savingsGoal.create({
       data: {
         name: dto.name,
@@ -63,6 +65,7 @@ export class SavingsGoalsService {
         targetDate,
         initialAmount: dto.initialAmount ?? 0,
         isEmergencyFund: dto.isEmergencyFund ?? false,
+        startMonth: dto.startMonth ?? null,
         userId,
       },
       include: INCLUDE,
@@ -71,7 +74,7 @@ export class SavingsGoalsService {
   }
 
   async update(userId: string, id: string, dto: UpdateSavingsGoalDto) {
-    await this.findOneOrFail(userId, id);
+    const current = await this.findOneOrFail(userId, id);
 
     // Whitelist explicita: nunca repassa o dto direto ao Prisma.
     const data: Prisma.SavingsGoalUpdateManyMutationInput = {};
@@ -82,6 +85,13 @@ export class SavingsGoalsService {
       const targetDate = toDateOnly(dto.targetDate);
       this.assertDeadline(targetDate);
       data.targetDate = targetDate;
+    }
+    if (dto.startMonth !== undefined) {
+      this.assertStart(
+        dto.startMonth,
+        (data.targetDate as Date) ?? current.targetDate,
+      );
+      data.startMonth = dto.startMonth;
     }
 
     const { count } = await this.prisma.savingsGoal.updateMany({
@@ -301,6 +311,20 @@ export class SavingsGoalsService {
     return (
       await this.decorate(userId, [await this.findOneOrFail(userId, id)])
     )[0];
+  }
+
+  /** Inicio dos aportes: do mes atual ate o mes do prazo. */
+  private assertStart(startMonth: string, targetDate: Date) {
+    if (startMonth < currentMonthKey()) {
+      throw new BadRequestException(
+        'O inicio dos aportes deve ser a partir do mes atual.',
+      );
+    }
+    if (startMonth > monthKeyOf(targetDate)) {
+      throw new BadRequestException(
+        'O inicio dos aportes deve ser ate o mes do prazo.',
+      );
+    }
   }
 
   private assertDeadline(targetDate: Date) {
