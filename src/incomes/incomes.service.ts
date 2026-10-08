@@ -3,10 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
 import { assertOwnedRefs } from '../common/assert-owned-refs';
+import { IncomeOccurrencesService } from '../fixed-incomes/income-occurrences.service';
 
 @Injectable()
 export class IncomesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly occurrences: IncomeOccurrencesService,
+  ) {}
 
   async create(userId: string, dto: CreateIncomeDto) {
     await assertOwnedRefs(this.prisma, userId, { tagId: dto.tagId });
@@ -21,7 +25,9 @@ export class IncomesService {
     });
   }
 
-  findAll(userId: string) {
+  async findAll(userId: string) {
+    // Self-healing: garante as ocorrencias faltantes das receitas fixas (nunca quebra a listagem).
+    await this.occurrences.ensureSafe(userId);
     return this.prisma.income.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
@@ -62,6 +68,19 @@ export class IncomesService {
     });
     if (!income) {
       throw new NotFoundException('Receita nao encontrada.');
+    }
+    // Ocorrencia gerada de receita fixa: registra lapide para nao ressuscitar na proxima listagem.
+    if (income.fixedIncomeId && income.fixedIncomeCompetence) {
+      await this.prisma.$transaction([
+        this.prisma.fixedIncome.updateMany({
+          where: { id: income.fixedIncomeId, userId },
+          data: {
+            skippedCompetences: { push: income.fixedIncomeCompetence },
+          },
+        }),
+        this.prisma.income.deleteMany({ where: { id: income.id, userId } }),
+      ]);
+      return income;
     }
     await this.prisma.income.deleteMany({ where: { id: income.id, userId } });
     return income;

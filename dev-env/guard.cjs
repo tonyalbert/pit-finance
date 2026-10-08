@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PROD_HOSTS = ['147.93.70.133'];
+const PROD_HOSTS = ['147.93.70.133', '207.180.222.79'];
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
 
 function assertLocal(url) {

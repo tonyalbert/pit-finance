@@ -42,6 +42,15 @@ As despesas fixas materializam sozinhas as ocorrencias (mes corrente ate +12 mes
 Exemplo (desligar no dev): `FIXED_EXPENSES_AUTOGEN=false npm run dev:api`.
 `POST /fixed-expenses/generate/:year/:month` esta DEPRECADO (idempotente, sem uso na UI).
 
+## Receitas fixas (salario, contratos)
+Mesma mecanica das despesas fixas, gerando `Income` (em criar/editar regra e em `GET /incomes`). Reajuste: `PUT /fixed-incomes/:id`
+com `amount` + `amountEffectiveFrom: "YYYY-MM"` grava o novo valor dali em diante (meses anteriores mantem o valor; lancamentos
+editados a mao nunca mudam). Sem `amountEffectiveFrom` corrige o valor desde o inicio.
+| Variavel | Padrao | Efeito |
+|---|---|---|
+| `FIXED_INCOMES_AUTOGEN` | herda `FIXED_EXPENSES_AUTOGEN` | Liga/desliga so as receitas fixas (`false` desliga mesmo com despesas ligadas). |
+| `FIXED_INCOMES_AUTOGEN_USERS` / `_MAX_ROWS` | herdam as de despesas | Mesma semantica. |
+
 ## Assinaturas AbacatePay (cobranca)
 Bloqueio do app inteiro sem teste/assinatura (Suporte, Configuracoes e Assinatura continuam abertos). Admin nunca e bloqueado.
 | Variavel | Padrao | Efeito |

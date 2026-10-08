@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { assertOwnedRefs } from './assert-owned-refs';
 import { ExpensesService } from '../expenses/expenses.service';
@@ -151,7 +151,12 @@ describe('IncomesService: posse de tag e escopo por userId', () => {
   let svc: IncomesService;
   beforeEach(() => {
     prisma = makePrisma();
-    svc = new IncomesService(prisma as never);
+    svc = new IncomesService(
+      prisma as never,
+      {
+        ensureSafe: jest.fn(async () => 0),
+      } as never,
+    );
   });
   const base = { source: 'Salario', amount: 100, date: '2026-09-05' };
 

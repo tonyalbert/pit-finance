@@ -8,6 +8,7 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { CreditorsModule } from './creditors/creditors.module';
 import { AiModule } from './ai/ai.module';
 import { FixedExpensesModule } from './fixed-expenses/fixed-expenses.module';
+import { FixedIncomesModule } from './fixed-incomes/fixed-incomes.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { BillingModule } from './billing/billing.module';
 import { AdminModule } from './admin/admin.module';
@@ -24,6 +25,7 @@ import { HealthController } from './health/health.controller';
     CreditorsModule,
     AiModule,
     FixedExpensesModule,
+    FixedIncomesModule,
     TicketsModule,
     BillingModule,
     AdminModule,
