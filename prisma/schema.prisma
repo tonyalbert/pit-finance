@@ -38,6 +38,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   fixedExpenses       FixedExpense[]
   fixedIncomes        FixedIncome[]
+  savingsGoals        SavingsGoal[]
+  savingsMovements    SavingsMovement[]
   tickets             Ticket[]
   ticketMessages      TicketMessage[]
 }
@@ -200,6 +202,48 @@ model FixedIncomeAdjustment {
   fixedIncome FixedIncome @relation(fields: [fixedIncomeId], references: [id], onDelete: Cascade)
 
   @@unique([fixedIncomeId, effectiveFrom])
+}
+
+enum SavingsMovementType {
+  DEPOSIT
+  WITHDRAW
+}
+
+// Meta de economia: alvo + prazo. Quanto guardar por mes e calculado (nao armazenado).
+// O dinheiro guardado NAO e despesa: e uma categoria propria ("Guardado") do mes.
+model SavingsGoal {
+  id              String   @id @default(uuid())
+  name            String
+  targetAmount    Decimal  @db.Decimal(12, 2)
+  targetDate      DateTime
+  // Ja guardado antes de criar a meta (nao conta como "Guardado" de nenhum mes).
+  initialAmount   Decimal  @default(0) @db.Decimal(12, 2)
+  isEmergencyFund Boolean  @default(false)
+  userId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movements SavingsMovement[]
+
+  @@index([userId])
+}
+
+// Aporte (DEPOSIT) ou retirada (WITHDRAW) confirmados pelo usuario; amount sempre positivo.
+model SavingsMovement {
+  id        String              @id @default(uuid())
+  goalId    String
+  userId    String
+  type      SavingsMovementType
+  amount    Decimal             @db.Decimal(12, 2)
+  date      DateTime
+  createdAt DateTime            @default(now())
+
+  goal SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@index([userId, date])
 }
 
 enum TicketStatus {
